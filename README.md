@@ -48,11 +48,11 @@ func main() {
 ## Filtered Policies
 
 ```go
-import "github.com/globalsign/mgo/bson"
+import "github.com/spacycoder/test/cosmos"
 
 // This adapter also implements the FilteredAdapter interface. This allows for
 // efficent, scalable enforcement of very large policies:
-filter := &bson.M{"v0": "alice"}
+filter := cosmos.SqlQuerySpec{Query: "SELECT * FROM root WHERE root.v0 = @v0", Parameters: []cosmos.QueryParam{{Name: "@v0", Value: "bob"}}}
 e.LoadFilteredPolicy(filter)
 
 // The loaded policy is now a subset of the policy in storage, containing only
