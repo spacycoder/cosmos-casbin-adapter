@@ -18,9 +18,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/spacycoder/test/cosmos"
+
 	"github.com/casbin/casbin"
 	"github.com/casbin/casbin/util"
-	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 var testDbURL = os.Getenv("TEST_COSMOS_URL")
@@ -137,7 +138,6 @@ func TestAdapter(t *testing.T) {
 	testGetPolicy(t, e, [][]string{})
 }
 func TestDeleteFilteredAdapter(t *testing.T) {
-	return
 	a := NewAdapter(getDbURL(), "casbin")
 	e := casbin.NewEnforcer("examples/rbac_tenant_service.conf", a)
 
@@ -166,7 +166,6 @@ func TestDeleteFilteredAdapter(t *testing.T) {
 }
 
 func TestFilteredAdapter(t *testing.T) {
-	return
 	// Now the DB has policy, so we can provide a normal use case.
 	// Create an adapter and an enforcer.
 	// NewEnforcer() will load the policy automatically.
@@ -177,7 +176,7 @@ func TestFilteredAdapter(t *testing.T) {
 	e.AddPolicy("alice", "data1", "write")
 	e.AddPolicy("bob", "data2", "write")
 	// Reload the filtered policy from the storage.
-	filter := &bson.M{"v0": "bob"}
+	filter := cosmos.SqlQuerySpec{Query: "SELECT * FROM root WHERE root.v0 = @v0", Parameters: []cosmos.QueryParam{{Name: "@v0", Value: "bob"}}}
 	if err := e.LoadFilteredPolicy(filter); err != nil {
 		t.Errorf("Expected LoadFilteredPolicy() to be successful; got %v", err)
 	}
@@ -185,7 +184,7 @@ func TestFilteredAdapter(t *testing.T) {
 	testGetPolicy(t, e, [][]string{{"bob", "data2", "write"}})
 
 	// Verify that alice's policy remains intact in the database.
-	filter = &bson.M{"v0": "alice"}
+	filter = cosmos.SqlQuerySpec{Query: "SELECT * FROM root WHERE root.v0 = @v0", Parameters: []cosmos.QueryParam{{Name: "@v0", Value: "alice"}}}
 	if err := e.LoadFilteredPolicy(filter); err != nil {
 		t.Errorf("Expected LoadFilteredPolicy() to be successful; got %v", err)
 	}

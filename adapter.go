@@ -146,7 +146,12 @@ func (a *adapter) LoadFilteredPolicy(model model.Model, filter interface{}) erro
 			return err
 		}
 	} else {
+		querySpec := filter.(cosmos.SqlQuerySpec)
 		a.filtered = true
+		_, err := a.collection.Documents().Query(&querySpec, &lines, cosmos.CrossPartition())
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, line := range lines {
