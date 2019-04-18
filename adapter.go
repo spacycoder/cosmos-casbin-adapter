@@ -16,6 +16,7 @@ package mongodbadapter
 
 import (
 	"errors"
+	"log"
 	"strconv"
 
 	"github.com/casbin/casbin/model"
@@ -43,10 +44,29 @@ type adapter struct {
 }
 
 // NewAdapter is the constructor for Adapter. If database name is not provided
-func NewAdapter(url, database string) persist.Adapter {
-	client := cosmos.New(url)
+func NewAdapter(connectionString, database string) persist.Adapter {
+	client, err := cosmos.New(connectionString)
+	if err != nil {
+		log.Fatalf("Creating new cosmos client caused error: %s", err.Error())
+	}
 	db := client.Database(database)
 	collection := db.Collection("casbinRules")
+	_, err = collection.Read()
+	if err != nil {
+		if err, ok := err.(*cosmos.CosmosError); ok {
+			if err.NotFound() {
+				collDef := &cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: "casbinRules"}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}}
+				_, newErr := db.Collections().Create(collDef)
+				if newErr != nil {
+					log.Fatalf("Creating cosmos collection caused error: %s", err.Error())
+				}
+			} else {
+				log.Fatalf("Reading cosmos collection caused error: %s", err.Error())
+			}
+		} else {
+			log.Fatalf("Reading cosmos collection caused error: %s", err.Error())
+		}
+	}
 	a := &adapter{collection: collection, db: db}
 	a.filtered = false
 	return a
@@ -61,28 +81,26 @@ func NewFilteredAdapter(url, database string) persist.FilteredAdapter {
 	return a
 }
 
-// @TODO implement
 func (a *adapter) dropTable() error {
-	/* 	_, err := a.collection.Delete()
-	   	if err != nil {
-	   		return err
-	   	}
-	   	_, err = a.db.Collections().Create(cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: "casbinRules"}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}})
-	*/
-
-	lines := []CasbinRule{}
-	_, err := a.collection.Documents().ReadAll(&lines, cosmos.CrossPartition())
+	_, err := a.collection.Delete()
 	if err != nil {
 		return err
 	}
-
-	for _, line := range lines {
-		_, err := a.collection.Document(line.ID).Delete(cosmos.PartitionKey(line.PType))
+	_, err = a.db.Collections().Create(&cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: "casbinRules"}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}})
+	/*
+		lines := []CasbinRule{}
+		_, err = a.collection.Documents().ReadAll(&lines, cosmos.CrossPartition())
 		if err != nil {
 			return err
 		}
-	}
-	return nil
+
+		for _, line := range lines {
+			_, err := a.collection.Document(line.ID).Delete(cosmos.PartitionKey(line.PType))
+			if err != nil {
+				return err
+			}
+		} */
+	return err
 }
 
 func loadPolicyLine(line CasbinRule, model model.Model) {
@@ -236,7 +254,6 @@ func (a *adapter) AddPolicy(sec string, ptype string, rule []string) error {
 }
 
 // RemovePolicy removes a policy rule from the storage.
-// @TODO IMPLEMENT
 func (a *adapter) RemovePolicy(sec string, ptype string, rule []string) error {
 	query := "SELECT * FROM root WHERE root.pType = @pType"
 	parameters := []cosmos.QueryParam{{Name: "@pType", Value: ptype}}

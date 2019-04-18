@@ -24,10 +24,10 @@ import (
 	"github.com/casbin/casbin/util"
 )
 
-var testDbURL = os.Getenv("TEST_COSMOS_URL")
+var testConnString = os.Getenv("TEST_COSMOS_URL")
 
-func getDbURL() string {
-	return testDbURL
+func getConnString() string {
+	return testConnString
 }
 
 func testGetPolicy(t *testing.T, e *casbin.Enforcer, res [][]string) {
@@ -44,8 +44,7 @@ func initPolicy(t *testing.T) {
 	// Because the DB is empty at first,
 	// so we need to load the policy from the file adapter (.CSV) first.
 	e := casbin.NewEnforcer("examples/rbac_model.conf", "examples/rbac_policy.csv")
-
-	a := NewAdapter(getDbURL(), "casbin")
+	a := NewAdapter(getConnString(), "casbin")
 	// This is a trick to save the current policy to the DB.
 	// We can't call e.SavePolicy() because the adapter in the enforcer is still the file adapter.
 	// The current policy means the policy in the Casbin enforcer (aka in memory).
@@ -74,7 +73,7 @@ func TestAdapter(t *testing.T) {
 	// Now the DB has policy, so we can provide a normal use case.
 	// Create an adapter and an enforcer.
 	// NewEnforcer() will load the policy automatically.
-	a := NewAdapter(getDbURL(), "casbin")
+	a := NewAdapter(getConnString(), "casbin")
 	e := casbin.NewEnforcer("examples/rbac_model.conf", a)
 	testGetPolicy(t, e, [][]string{{"alice", "data1", "read"}, {"bob", "data2", "write"}, {"data2_admin", "data2", "read"}, {"data2_admin", "data2", "write"}})
 
@@ -138,7 +137,7 @@ func TestAdapter(t *testing.T) {
 	testGetPolicy(t, e, [][]string{})
 }
 func TestDeleteFilteredAdapter(t *testing.T) {
-	a := NewAdapter(getDbURL(), "casbin")
+	a := NewAdapter(getConnString(), "casbin")
 	e := casbin.NewEnforcer("examples/rbac_tenant_service.conf", a)
 
 	e.AddPolicy("domain1", "alice", "data3", "read", "accept", "service1")
@@ -169,7 +168,7 @@ func TestFilteredAdapter(t *testing.T) {
 	// Now the DB has policy, so we can provide a normal use case.
 	// Create an adapter and an enforcer.
 	// NewEnforcer() will load the policy automatically.
-	a := NewAdapter(getDbURL(), "casbin")
+	a := NewAdapter(getConnString(), "casbin")
 	e := casbin.NewEnforcer("examples/rbac_model.conf", a)
 
 	// Load filtered policies from the database.
