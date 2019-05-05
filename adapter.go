@@ -1,18 +1,4 @@
-// Copyright 2018 The casbin Authors. All Rights Reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-package mongodbadapter
+package cosmosadapter
 
 import (
 	"errors"
@@ -50,12 +36,12 @@ func NewAdapter(connectionString, database string) persist.Adapter {
 		log.Fatalf("Creating new cosmos client caused error: %s", err.Error())
 	}
 	db := client.Database(database)
-	collection := db.Collection("casbinRules")
+	collection := db.Collection("casbin_rule")
 	_, err = collection.Read()
 	if err != nil {
-		if err, ok := err.(*cosmos.CosmosError); ok {
+		if err, ok := err.(*cosmos.Error); ok {
 			if err.NotFound() {
-				collDef := &cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: "casbinRules"}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}}
+				collDef := &cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: "casbin_rule"}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}}
 				_, newErr := db.Collections().Create(collDef)
 				if newErr != nil {
 					log.Fatalf("Creating cosmos collection caused error: %s", err.Error())
@@ -81,25 +67,12 @@ func NewFilteredAdapter(url, database string) persist.FilteredAdapter {
 	return a
 }
 
-func (a *adapter) dropTable() error {
+func (a *adapter) dropCollection() error {
 	_, err := a.collection.Delete()
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Collections().Create(&cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: "casbinRules"}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}})
-	/*
-		lines := []CasbinRule{}
-		_, err = a.collection.Documents().ReadAll(&lines, cosmos.CrossPartition())
-		if err != nil {
-			return err
-		}
-
-		for _, line := range lines {
-			_, err := a.collection.Document(line.ID).Delete(cosmos.PartitionKey(line.PType))
-			if err != nil {
-				return err
-			}
-		} */
+	_, err = a.db.Collections().Create(&cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: "casbin_rule"}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}})
 	return err
 }
 
@@ -217,7 +190,7 @@ func (a *adapter) SavePolicy(model model.Model) error {
 	if a.filtered {
 		return errors.New("cannot save a filtered policy")
 	}
-	if err := a.dropTable(); err != nil {
+	if err := a.dropCollection(); err != nil {
 		return err
 	}
 

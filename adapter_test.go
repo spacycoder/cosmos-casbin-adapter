@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mongodbadapter
+package cosmosadapter
 
 import (
 	"os"
@@ -205,24 +205,12 @@ func TestFilteredAdapter(t *testing.T) {
 	testGetPolicy(t, e, [][]string{})
 }
 
-func TestNewAdapterWithInvalidURL(t *testing.T) {
-	return
+func TestNewAdapterWithInvalidConnectionString(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("Expected recovery from panic")
 		}
 	}()
 
-	_ = NewAdapter("localhost:40001?foo=1&bar=2", "casbin")
-}
-
-func TestNewAdapterWithUnknownURL(t *testing.T) {
-	return
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("Expected recovery from panic")
-		}
-	}()
-
-	_ = NewAdapter("fakeserver:27017", "casbin")
+	_ = NewAdapter("fwdawFGwea", "casbin")
 }

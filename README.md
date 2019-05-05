@@ -1,11 +1,10 @@
 CosmosDB Adapter
 ====
 
-CosmosDB Adapter is the [CosmosDB]adapter for [Casbin](https://github.com/casbin/casbin). With this library, Casbin can load policy from MongoDB or save policy to it.
+CosmosDB Adapter is the cosmosDB adapter for [Casbin](https://github.com/casbin/casbin). With this library, Casbin can load policy from CosmosDB or save policy to it.
 
 ## Installation
-
-    go get github.com/SpacyCoder/cosmos-adapter
+    go get github.com/spacycoder/cosmos-adapter
 
 ## Simple Example
 
@@ -18,16 +17,16 @@ import (
 )
 
 func main() {
-	// Initialize a MongoDB adapter and use it in a Casbin enforcer:
-	// The adapter will use the database named "casbin".
-	// If it doesn't exist, the adapter will create it automatically.
-	a := mongodbadapter.NewAdapter("127.0.0.1:27017") // Your MongoDB URL. 
+	// Initialize a CosmosDB adapter and use it in a Casbin enforcer:
+	// The first argument is the cosmos connection string.
+	// The second argument is the name of the database you wish to use. 
+	// This database must already have been created. 
+	// This will automatically create a collection under the supplied database with the name "casbin_rule".
+	a := cosmosadapter.NewAdapter("connstring", "casbin") // Your MongoDB URL. 
 	
 	// Or you can use an existing DB "abc" like this:
 	// The adapter will use the table named "casbin_rule".
 	// If it doesn't exist, the adapter will create it automatically.
-	// a := mongodbadapter.NewAdapter("127.0.0.1:27017/abc")
-	
 	e := casbin.NewEnforcer("examples/rbac_model.conf", a)
 	
 	// Load the policy from DB.
@@ -48,16 +47,16 @@ func main() {
 ## Filtered Policies
 
 ```go
-import "github.com/spacycoder/test/cosmos"
+import "github.com/spacycoder/cosmosdb-go-sdk/cosmos"
 
 // This adapter also implements the FilteredAdapter interface. This allows for
 // efficent, scalable enforcement of very large policies:
-filter := cosmos.SqlQuerySpec{Query: "SELECT * FROM root WHERE root.v0 = @v0", Parameters: []cosmos.QueryParam{{Name: "@v0", Value: "bob"}}}
+
+filter := cosmos.Q{Query: "SELECT * FROM root WHERE root.v0 = @v0", Parameters: []cosmos.P{{Name: "@v0", Value: "bob"}}}
 e.LoadFilteredPolicy(filter)
 
 // The loaded policy is now a subset of the policy in storage, containing only
-// the policy lines that match the provided filter. This filter should be a
-// valid MongoDB selector using BSON. A filtered policy cannot be saved.
+// the policy lines that match the provided filter. 
 ```
 
 ## Getting Help
