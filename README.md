@@ -22,7 +22,7 @@ func main() {
 	// The second argument is the name of the database you wish to use. 
 	// This database must already have been created. 
 	// This will automatically create a collection under the supplied database with the name "casbin_rule".
-	a := cosmosadapter.NewAdapter("connstring", "casbin") // Your MongoDB URL. 
+	a := cosmosadapter.NewAdapter("connstring", "casbin") 
 	
 	// Or you can use an existing DB "abc" like this:
 	// The adapter will use the table named "casbin_rule".
