@@ -13,7 +13,7 @@ package main
 
 import (
 	"github.com/casbin/casbin"
-	"github.com/spacycoder/cosmos-adapter"
+	cosmosadapter "github.com/spacycoder/cosmos-casbin-adapter"
 )
 
 func main() {
