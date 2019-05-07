@@ -63,7 +63,6 @@ func NewAdapter(connectionString, database string) persist.Adapter {
 func NewFilteredAdapter(url, database string) persist.FilteredAdapter {
 	a := NewAdapter(url, database).(*adapter)
 	a.filtered = true
-
 	return a
 }
 
@@ -132,16 +131,36 @@ func (a *adapter) LoadFilteredPolicy(model model.Model, filter interface{}) erro
 	lines := []CasbinRule{}
 	if filter == nil {
 		a.filtered = false
-		_, err := a.collection.Documents().ReadAll(&lines, cosmos.CrossPartition())
+		res, err := a.collection.Documents().ReadAll(&lines, cosmos.CrossPartition())
 		if err != nil {
 			return err
+		}
+		tokenString := res.Continuation()
+		for tokenString != "" {
+			newLines := []CasbinRule{}
+			res, err := a.collection.Documents().ReadAll(&newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
+			if err != nil {
+				return err
+			}
+			tokenString = res.Continuation()
+			lines = append(lines, newLines...)
 		}
 	} else {
 		querySpec := filter.(cosmos.SqlQuerySpec)
 		a.filtered = true
-		_, err := a.collection.Documents().Query(&querySpec, &lines, cosmos.CrossPartition())
+		res, err := a.collection.Documents().Query(&querySpec, &lines, cosmos.CrossPartition())
 		if err != nil {
 			return err
+		}
+		tokenString := res.Continuation()
+		for tokenString != "" {
+			newLines := []CasbinRule{}
+			res, err := a.collection.Documents().Query(&querySpec, &newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
+			if err != nil {
+				return err
+			}
+			tokenString = res.Continuation()
+			lines = append(lines, newLines...)
 		}
 	}
 
