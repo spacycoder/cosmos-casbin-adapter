@@ -22,7 +22,7 @@ type CasbinRule struct {
 	V5    string `json:"v5"`
 }
 
-// adapter represents the MongoDB adapter for policy storage.
+// adapter represents the CosmosDB adapter for policy storage.
 type adapter struct {
 	collection *cosmos.Collection
 	db         *cosmos.Database
