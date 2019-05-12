@@ -22,7 +22,7 @@ type CasbinRule struct {
 	V5    string `json:"v5"`
 }
 
-// adapter represents the MongoDB adapter for policy storage.
+// adapter represents the CosmosDB adapter for policy storage.
 type adapter struct {
 	collection *cosmos.Collection
 	db         *cosmos.Database
@@ -250,10 +250,9 @@ func (a *adapter) RemovePolicy(sec string, ptype string, rule []string) error {
 	query := "SELECT * FROM root WHERE root.pType = @pType"
 	parameters := []cosmos.QueryParam{{Name: "@pType", Value: ptype}}
 	for i, value := range rule {
-		iString := strconv.Itoa(i)
-
-		query += " AND root.v" + iString + " = @v" + iString
-		parameters = append(parameters, cosmos.QueryParam{Name: "@v" + iString, Value: value})
+		indexString := strconv.Itoa(i)
+		query += " AND root.v" + indexString + " = @v" + indexString
+		parameters = append(parameters, cosmos.QueryParam{Name: "@v" + indexString, Value: value})
 	}
 
 	querySpec := cosmos.SqlQuerySpec{Parameters: parameters, Query: query}
