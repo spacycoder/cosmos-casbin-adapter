@@ -6,6 +6,9 @@ CosmosDB Adapter is the cosmosDB adapter for [Casbin](https://github.com/casbin/
 
     go get github.com/spacycoder/cosmos-adapter
 
+## Note
+	When creating your collection for storing casbin rules you should use "/pType" as your partitionKey
+
 ## Simple Example
 
 ```go
