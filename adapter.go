@@ -24,26 +24,67 @@ type CasbinRule struct {
 
 // adapter represents the CosmosDB adapter for policy storage.
 type adapter struct {
-	collection *cosmos.Collection
-	db         *cosmos.Database
-	filtered   bool
+	collectionName string
+	databaseName   string
+	collection     *cosmos.Collection
+	db             *cosmos.Database
+	client         *cosmos.Client
+	filtered       bool
 }
 
-// NewAdapter is the constructor for Adapter. If database name is not provided
-func NewAdapter(connectionString, database string) persist.Adapter {
+// NewAdapter is the constructor for Adapter.
+// no options are given the database name is "casbin" and the collection is named casbin_rule
+// if the database or collection is not found it is automatically created.
+// the database can be changed by using the Database(db string) option.
+// the collection can be changed by using the Collection(coll string) option.
+// see README for example
+func NewAdapter(connectionString string, options ...Option) persist.Adapter {
 	client, err := cosmos.New(connectionString)
 	if err != nil {
 		log.Fatalf("Creating new cosmos client caused error: %s", err.Error())
 	}
-	db := client.Database(database)
-	collection := db.Collection("casbin_rule")
-	_, err = collection.Read()
+	a := &adapter{collectionName: "casbin_rule", databaseName: "casbin", client: client}
+
+	for _, option := range options {
+		option(a)
+	}
+
+	db := client.Database(a.databaseName)
+	a.createDatabaseIfNotExist(db)
+	collection := db.Collection(a.collectionName)
+	a.createCollectionIfNotExist(collection)
+	a.db = db
+	a.collection = collection
+	a.filtered = false
+	return a
+}
+
+func (a *adapter) createDatabaseIfNotExist(db *cosmos.Database) {
+	_, err := db.Read()
 	if err != nil {
 		if err, ok := err.(*cosmos.Error); ok {
 			if err.NotFound() {
-				collDef := &cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: "casbin_rule"}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}}
-				_, newErr := db.Collections().Create(collDef)
-				if newErr != nil {
+				a.client.Databases().Create(a.databaseName)
+				if err != nil {
+					log.Fatalf("Creating cosmos database caused error: %s", err.Error())
+				}
+			} else {
+				log.Fatalf("Reading cosmos database caused error: %s", err.Error())
+			}
+		} else {
+			log.Fatalf("Reading cosmos database caused error: %s", err.Error())
+		}
+	}
+}
+
+func (a *adapter) createCollectionIfNotExist(collection *cosmos.Collection) {
+	_, err := collection.Read()
+	if err != nil {
+		if err, ok := err.(*cosmos.Error); ok {
+			if err.NotFound() {
+				collDef := &cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: a.collectionName}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}}
+				_, err := a.db.Collections().Create(collDef)
+				if err != nil {
 					log.Fatalf("Creating cosmos collection caused error: %s", err.Error())
 				}
 			} else {
@@ -53,15 +94,12 @@ func NewAdapter(connectionString, database string) persist.Adapter {
 			log.Fatalf("Reading cosmos collection caused error: %s", err.Error())
 		}
 	}
-	a := &adapter{collection: collection, db: db}
-	a.filtered = false
-	return a
 }
 
 // NewFilteredAdapter is the constructor for FilteredAdapter.
 // Casbin will not automatically call LoadPolicy() for a filtered adapter.
-func NewFilteredAdapter(url, database string) persist.FilteredAdapter {
-	a := NewAdapter(url, database).(*adapter)
+func NewFilteredAdapter(url string, options ...Option) persist.FilteredAdapter {
+	a := NewAdapter(url, options...).(*adapter)
 	a.filtered = true
 	return a
 }
@@ -71,7 +109,7 @@ func (a *adapter) dropCollection() error {
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Collections().Create(&cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: "casbin_rule"}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}})
+	_, err = a.db.Collections().Create(&cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: a.collectionName}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}})
 	return err
 }
 
@@ -330,4 +368,18 @@ func (a *adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 	}
 
 	return nil
+}
+
+type Option func(*adapter)
+
+func Database(db string) Option {
+	return func(a *adapter) {
+		a.databaseName = db
+	}
+}
+
+func Collection(coll string) Option {
+	return func(a *adapter) {
+		a.collectionName = coll
+	}
 }
