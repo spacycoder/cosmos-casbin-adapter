@@ -7,7 +7,7 @@ import (
 
 	"github.com/casbin/casbin/model"
 	"github.com/casbin/casbin/persist"
-	"github.com/spacycoder/test/cosmos"
+	"github.com/spacycoder/cosmosdb-go-sdk/cosmos"
 )
 
 // CasbinRule represents a rule in Casbin.
