@@ -51,9 +51,10 @@ func NewAdapter(connectionString string, options ...Option) persist.Adapter {
 
 	db := client.Database(a.databaseName)
 	a.createDatabaseIfNotExist(db)
+	a.db = db
+
 	collection := db.Collection(a.collectionName)
 	a.createCollectionIfNotExist(collection)
-	a.db = db
 	a.collection = collection
 	a.filtered = false
 	return a
@@ -64,9 +65,9 @@ func (a *adapter) createDatabaseIfNotExist(db *cosmos.Database) {
 	if err != nil {
 		if err, ok := err.(*cosmos.Error); ok {
 			if err.NotFound() {
-				a.client.Databases().Create(a.databaseName)
-				if err != nil {
-					log.Fatalf("Creating cosmos database caused error: %s", err.Error())
+				_, createDbErr := a.client.Databases().Create(a.databaseName)
+				if createDbErr != nil {
+					log.Fatalf("Creating cosmos database caused error: %s", createDbErr.Error())
 				}
 			} else {
 				log.Fatalf("Reading cosmos database caused error: %s", err.Error())

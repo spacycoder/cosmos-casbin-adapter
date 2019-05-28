@@ -18,7 +18,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/spacycoder/test/cosmos"
+	"github.com/spacycoder/cosmosdb-go-sdk/cosmos"
 
 	"github.com/casbin/casbin"
 	"github.com/casbin/casbin/util"
