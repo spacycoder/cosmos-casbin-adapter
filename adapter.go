@@ -2,7 +2,7 @@ package cosmosadapter
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"strconv"
 
 	"github.com/casbin/casbin/model"
@@ -33,7 +33,7 @@ type adapter struct {
 }
 
 // NewAdapter is the constructor for Adapter.
-// no options are given the database name is "casbin" and the collection is named casbin_rule
+// if no options are given the database name is "casbin" and the collection is named casbin_rule
 // if the database or collection is not found it is automatically created.
 // the database can be changed by using the Database(db string) option.
 // the collection can be changed by using the Collection(coll string) option.
@@ -41,10 +41,12 @@ type adapter struct {
 func NewAdapter(connectionString string, options ...Option) persist.Adapter {
 	client, err := cosmos.New(connectionString)
 	if err != nil {
-		log.Fatalf("Creating new cosmos client caused error: %s", err.Error())
+		panic(fmt.Sprintf("Creating new cosmos client caused error: %s", err.Error()))
 	}
+	// create adapter and set default values
 	a := &adapter{collectionName: "casbin_rule", databaseName: "casbin", client: client}
 
+	// apply options
 	for _, option := range options {
 		option(a)
 	}
@@ -67,13 +69,13 @@ func (a *adapter) createDatabaseIfNotExist(db *cosmos.Database) {
 			if err.NotFound() {
 				_, createDbErr := a.client.Databases().Create(a.databaseName)
 				if createDbErr != nil {
-					log.Fatalf("Creating cosmos database caused error: %s", createDbErr.Error())
+					panic(fmt.Sprintf("Creating cosmos database caused error: %s", createDbErr.Error()))
 				}
 			} else {
-				log.Fatalf("Reading cosmos database caused error: %s", err.Error())
+				panic(fmt.Sprintf("Reading cosmos database caused error: %s", err.Error()))
 			}
 		} else {
-			log.Fatalf("Reading cosmos database caused error: %s", err.Error())
+			panic(fmt.Sprintf("Reading cosmos database caused error: %s", err.Error()))
 		}
 	}
 }
@@ -86,13 +88,13 @@ func (a *adapter) createCollectionIfNotExist(collection *cosmos.Collection) {
 				collDef := &cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: a.collectionName}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}}
 				_, err := a.db.Collections().Create(collDef)
 				if err != nil {
-					log.Fatalf("Creating cosmos collection caused error: %s", err.Error())
+					panic(fmt.Sprintf("Creating cosmos collection caused error: %s", err.Error()))
 				}
 			} else {
-				log.Fatalf("Reading cosmos collection caused error: %s", err.Error())
+				panic(fmt.Sprintf("Reading cosmos collection caused error: %s", err.Error()))
 			}
 		} else {
-			log.Fatalf("Reading cosmos collection caused error: %s", err.Error())
+			panic(fmt.Sprintf("Reading cosmos collection caused error: %s", err.Error()))
 		}
 	}
 }
