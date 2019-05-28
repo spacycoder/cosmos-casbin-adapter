@@ -1,9 +1,9 @@
-CosmosDB Adapter
-====
+# CosmosDB Adapter
 
 CosmosDB Adapter is the cosmosDB adapter for [Casbin](https://github.com/casbin/casbin). With this library, Casbin can load policy from CosmosDB or save policy to it.
 
 ## Installation
+
     go get github.com/spacycoder/cosmos-adapter
 
 ## Simple Example
@@ -19,26 +19,53 @@ import (
 func main() {
 	// Initialize a CosmosDB adapter and use it in a Casbin enforcer:
 	// The first argument is the cosmos connection string.
-	// The second argument is the name of the database you wish to use. 
-	// This database must already have been created. 
-	// This will automatically create a collection under the supplied database with the name "casbin_rule".
-	a := cosmosadapter.NewAdapter("connstring", "casbin") 
-	
-	// Or you can use an existing DB "abc" like this:
-	// The adapter will use the table named "casbin_rule".
-	// If it doesn't exist, the adapter will create it automatically.
+	// The second argument takes options as its input.
+	// if not option is given the default database name is "casbin" and the default collection name is "casbin_rule"
+	// The adapter will try to create the database and collection if it does not find them.
+	a := cosmosadapter.NewAdapter("connstring")
 	e := casbin.NewEnforcer("examples/rbac_model.conf", a)
-	
+
 	// Load the policy from DB.
 	e.LoadPolicy()
-	
+
 	// Check the permission.
 	e.Enforce("alice", "data1", "read")
-	
+
 	// Modify the policy.
 	// e.AddPolicy(...)
 	// e.RemovePolicy(...)
-	
+
+	// Save the policy back to DB.
+	e.SavePolicy()
+}
+```
+
+## With options
+
+```go
+package main
+
+import (
+	"github.com/casbin/casbin"
+	cosmosadapter "github.com/spacycoder/cosmos-casbin-adapter"
+)
+
+func main() {
+	// Initialize a CosmosDB adapter and use it in a Casbin enforcer:
+	// The adapter will try to create the database and collection if it does not find them.
+	a := cosmosadapter.NewAdapter("connstring", cosmosadapter.Database("mycasbindb"), cosmosadapter.Collection("mycasbincollection"))
+	e := casbin.NewEnforcer("examples/rbac_model.conf", a)
+
+	// Load the policy from DB.
+	e.LoadPolicy()
+
+	// Check the permission.
+	e.Enforce("alice", "data1", "read")
+
+	// Modify the policy.
+	// e.AddPolicy(...)
+	// e.RemovePolicy(...)
+
 	// Save the policy back to DB.
 	e.SavePolicy()
 }
@@ -56,7 +83,7 @@ filter := cosmos.Q{Query: "SELECT * FROM root WHERE root.v0 = @v0", Parameters: 
 e.LoadFilteredPolicy(filter)
 
 // The loaded policy is now a subset of the policy in storage, containing only
-// the policy lines that match the provided filter. 
+// the policy lines that match the provided filter.
 ```
 
 ## Getting Help
