@@ -67,7 +67,7 @@ func (a *adapter) createDatabaseIfNotExist(db *cosmos.Database) {
 	if err != nil {
 		if err, ok := err.(*cosmos.Error); ok {
 			if err.NotFound() {
-				_, createDbErr := a.client.Databases().Create(a.databaseName)
+				_, createDbErr := a.client.Databases().Create(context.Background(), a.databaseName)
 				if createDbErr != nil {
 					panic(fmt.Sprintf("Creating cosmos database caused error: %s", createDbErr.Error()))
 				}
@@ -86,7 +86,7 @@ func (a *adapter) createCollectionIfNotExist(collection *cosmos.Collection) {
 		if err, ok := err.(*cosmos.Error); ok {
 			if err.NotFound() {
 				collDef := &cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: a.collectionName}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}}
-				_, err := a.db.Collections().Create(collDef)
+				_, err := a.db.Collections().Create(context.Background(),collDef)
 				if err != nil {
 					panic(fmt.Sprintf("Creating cosmos collection caused error: %s", err.Error()))
 				}
@@ -172,14 +172,14 @@ func (a *adapter) LoadFilteredPolicy(model model.Model, filter interface{}) erro
 	lines := []CasbinRule{}
 	if filter == nil {
 		a.filtered = false
-		res, err := a.collection.Documents().ReadAll(&lines, cosmos.CrossPartition())
+		res, err := a.collection.Documents().ReadAll(context.Background(),&lines, cosmos.CrossPartition())
 		if err != nil {
 			return err
 		}
 		tokenString := res.Continuation()
 		for tokenString != "" {
 			newLines := []CasbinRule{}
-			res, err := a.collection.Documents().ReadAll(&newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
+			res, err := a.collection.Documents().ReadAll(context.Background(),&newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
 			if err != nil {
 				return err
 			}
@@ -189,14 +189,14 @@ func (a *adapter) LoadFilteredPolicy(model model.Model, filter interface{}) erro
 	} else {
 		querySpec := filter.(cosmos.SqlQuerySpec)
 		a.filtered = true
-		res, err := a.collection.Documents().Query(&querySpec, &lines, cosmos.CrossPartition())
+		res, err := a.collection.Documents().Query(context.Background(),&querySpec, &lines, cosmos.CrossPartition())
 		if err != nil {
 			return err
 		}
 		tokenString := res.Continuation()
 		for tokenString != "" {
 			newLines := []CasbinRule{}
-			res, err := a.collection.Documents().Query(&querySpec, &newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
+			res, err := a.collection.Documents().Query(context.Background(),&querySpec, &newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
 			if err != nil {
 				return err
 			}
@@ -298,13 +298,13 @@ func (a *adapter) RemovePolicy(sec string, ptype string, rule []string) error {
 
 	querySpec := cosmos.SqlQuerySpec{Parameters: parameters, Query: query}
 	var policies []CasbinRule
-	_, err := a.collection.Documents().Query(&querySpec, &policies, cosmos.PartitionKey(ptype))
+	_, err := a.collection.Documents().Query(context.Background(),&querySpec, &policies, cosmos.PartitionKey(ptype))
 	if err != nil {
 		return err
 	}
 
 	for _, policy := range policies {
-		_, err := a.collection.Document(policy.ID).Delete(cosmos.PartitionKey(policy.PType))
+		_, err := a.collection.Document(policy.ID).Delete(context.Background(),cosmos.PartitionKey(policy.PType))
 		if err != nil {
 			return err
 		}
@@ -358,13 +358,13 @@ func (a *adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 
 	querySpec := cosmos.SqlQuerySpec{Parameters: parameters, Query: query}
 	var policies []CasbinRule
-	_, err := a.collection.Documents().Query(&querySpec, &policies, cosmos.PartitionKey(ptype))
+	_, err := a.collection.Documents().Query(context.Background(),&querySpec, &policies, cosmos.PartitionKey(ptype))
 	if err != nil {
 		return err
 	}
 
 	for _, policy := range policies {
-		_, err := a.collection.Document(policy.ID).Delete(cosmos.PartitionKey(policy.PType))
+		_, err := a.collection.Document(policy.ID).Delete(context.Background(),cosmos.PartitionKey(policy.PType))
 		if err != nil {
 			return err
 		}
