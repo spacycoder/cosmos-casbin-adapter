@@ -8,6 +8,7 @@ import (
 	"github.com/casbin/casbin/model"
 	"github.com/casbin/casbin/persist"
 	"github.com/spacycoder/cosmosdb-go-sdk/cosmos"
+	"context"
 )
 
 // CasbinRule represents a rule in Casbin.
