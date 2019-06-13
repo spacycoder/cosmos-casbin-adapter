@@ -64,7 +64,7 @@ func NewAdapter(connectionString string, options ...Option) persist.Adapter {
 }
 
 func (a *adapter) createDatabaseIfNotExist(db *cosmos.Database) {
-	_, err := db.Read()
+	_, err := db.Read(context.Background())
 	if err != nil {
 		if err, ok := err.(*cosmos.Error); ok {
 			if err.NotFound() {
@@ -82,7 +82,7 @@ func (a *adapter) createDatabaseIfNotExist(db *cosmos.Database) {
 }
 
 func (a *adapter) createCollectionIfNotExist(collection *cosmos.Collection) {
-	_, err := collection.Read()
+	_, err := collection.Read(context.Background())
 	if err != nil {
 		if err, ok := err.(*cosmos.Error); ok {
 			if err.NotFound() {
@@ -109,11 +109,11 @@ func NewFilteredAdapter(url string, options ...Option) persist.FilteredAdapter {
 }
 
 func (a *adapter) dropCollection() error {
-	_, err := a.collection.Delete()
+	_, err := a.collection.Delete(context.Background())
 	if err != nil {
 		return err
 	}
-	_, err = a.db.Collections().Create(&cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: a.collectionName}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}})
+	_, err = a.db.Collections().Create(context.Background(), &cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: a.collectionName}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}})
 	return err
 }
 
@@ -272,7 +272,7 @@ func (a *adapter) SavePolicy(model model.Model) error {
 	}
 
 	for _, line := range lines {
-		_, err := a.collection.Documents().Create(&line, cosmos.PartitionKey(line.PType))
+		_, err := a.collection.Documents().Create(context.Background(), &line, cosmos.PartitionKey(line.PType))
 		if err != nil {
 			return err
 		}
@@ -283,7 +283,7 @@ func (a *adapter) SavePolicy(model model.Model) error {
 // AddPolicy adds a policy rule to the storage.
 func (a *adapter) AddPolicy(sec string, ptype string, rule []string) error {
 	line := savePolicyLine(ptype, rule)
-	_, err := a.collection.Documents().Create(&line, cosmos.PartitionKey(line.PType))
+	_, err := a.collection.Documents().Create(context.Background(), &line, cosmos.PartitionKey(line.PType))
 	return err
 }
 
