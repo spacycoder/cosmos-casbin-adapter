@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/casbin/casbin/model"
-	"github.com/casbin/casbin/persist"
-	"github.com/spacycoder/cosmosdb-go-sdk/cosmos"
 	"context"
+
+	"github.com/casbin/casbin/v2/model"
+	"github.com/casbin/casbin/v2/persist"
+	"github.com/spacycoder/cosmosdb-go-sdk/cosmos"
 )
 
 // CasbinRule represents a rule in Casbin.
@@ -87,7 +88,7 @@ func (a *adapter) createCollectionIfNotExist(collection *cosmos.Collection) {
 		if err, ok := err.(*cosmos.Error); ok {
 			if err.NotFound() {
 				collDef := &cosmos.CollectionDefinition{Resource: cosmos.Resource{ID: a.collectionName}, PartitionKey: cosmos.PartitionKeyDefinition{Paths: []string{"/pType"}, Kind: "Hash"}}
-				_, err := a.db.Collections().Create(context.Background(),collDef)
+				_, err := a.db.Collections().Create(context.Background(), collDef)
 				if err != nil {
 					panic(fmt.Sprintf("Creating cosmos collection caused error: %s", err.Error()))
 				}
@@ -173,14 +174,14 @@ func (a *adapter) LoadFilteredPolicy(model model.Model, filter interface{}) erro
 	lines := []CasbinRule{}
 	if filter == nil {
 		a.filtered = false
-		res, err := a.collection.Documents().ReadAll(context.Background(),&lines, cosmos.CrossPartition())
+		res, err := a.collection.Documents().ReadAll(context.Background(), &lines, cosmos.CrossPartition())
 		if err != nil {
 			return err
 		}
 		tokenString := res.Continuation()
 		for tokenString != "" {
 			newLines := []CasbinRule{}
-			res, err := a.collection.Documents().ReadAll(context.Background(),&newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
+			res, err := a.collection.Documents().ReadAll(context.Background(), &newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
 			if err != nil {
 				return err
 			}
@@ -190,14 +191,14 @@ func (a *adapter) LoadFilteredPolicy(model model.Model, filter interface{}) erro
 	} else {
 		querySpec := filter.(cosmos.SqlQuerySpec)
 		a.filtered = true
-		res, err := a.collection.Documents().Query(context.Background(),&querySpec, &lines, cosmos.CrossPartition())
+		res, err := a.collection.Documents().Query(context.Background(), &querySpec, &lines, cosmos.CrossPartition())
 		if err != nil {
 			return err
 		}
 		tokenString := res.Continuation()
 		for tokenString != "" {
 			newLines := []CasbinRule{}
-			res, err := a.collection.Documents().Query(context.Background(),&querySpec, &newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
+			res, err := a.collection.Documents().Query(context.Background(), &querySpec, &newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
 			if err != nil {
 				return err
 			}
@@ -299,13 +300,13 @@ func (a *adapter) RemovePolicy(sec string, ptype string, rule []string) error {
 
 	querySpec := cosmos.SqlQuerySpec{Parameters: parameters, Query: query}
 	var policies []CasbinRule
-	_, err := a.collection.Documents().Query(context.Background(),&querySpec, &policies, cosmos.PartitionKey(ptype))
+	_, err := a.collection.Documents().Query(context.Background(), &querySpec, &policies, cosmos.PartitionKey(ptype))
 	if err != nil {
 		return err
 	}
 
 	for _, policy := range policies {
-		_, err := a.collection.Document(policy.ID).Delete(context.Background(),cosmos.PartitionKey(policy.PType))
+		_, err := a.collection.Document(policy.ID).Delete(context.Background(), cosmos.PartitionKey(policy.PType))
 		if err != nil {
 			return err
 		}
@@ -359,13 +360,13 @@ func (a *adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int,
 
 	querySpec := cosmos.SqlQuerySpec{Parameters: parameters, Query: query}
 	var policies []CasbinRule
-	_, err := a.collection.Documents().Query(context.Background(),&querySpec, &policies, cosmos.PartitionKey(ptype))
+	_, err := a.collection.Documents().Query(context.Background(), &querySpec, &policies, cosmos.PartitionKey(ptype))
 	if err != nil {
 		return err
 	}
 
 	for _, policy := range policies {
-		_, err := a.collection.Document(policy.ID).Delete(context.Background(),cosmos.PartitionKey(policy.PType))
+		_, err := a.collection.Document(policy.ID).Delete(context.Background(), cosmos.PartitionKey(policy.PType))
 		if err != nil {
 			return err
 		}
