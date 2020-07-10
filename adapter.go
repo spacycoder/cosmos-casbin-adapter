@@ -3,12 +3,13 @@ package cosmosadapter
 import (
 	"errors"
 	"fmt"
-	"strconv"
+	"strings"
 
 	"context"
 
 	"github.com/casbin/casbin/v2/model"
 	"github.com/casbin/casbin/v2/persist"
+	"github.com/mmcloughlin/meow"
 	"github.com/spacycoder/cosmosdb-go-sdk/cosmos"
 )
 
@@ -165,59 +166,67 @@ LineEnd:
 
 // LoadPolicy loads policy from database.
 func (a *adapter) LoadPolicy(model model.Model) error {
-	return a.LoadFilteredPolicy(model, nil)
+	lines := []CasbinRule{}
+	a.filtered = false
+	res, err := a.collection.Documents().ReadAll(context.Background(), &lines, cosmos.CrossPartition())
+	if err != nil {
+		return err
+	}
+
+	tokenString := res.Continuation()
+	for tokenString != "" {
+		newLines := []CasbinRule{}
+		res, err := a.collection.Documents().ReadAll(context.Background(), &newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
+		if err != nil {
+			return err
+		}
+		tokenString = res.Continuation()
+		lines = append(lines, newLines...)
+	}
+
+	for _, line := range lines {
+		loadPolicyLine(line, model)
+	}
+	return nil
 }
 
 // LoadFilteredPolicy loads matching policy lines from database. If not nil,
 // the filter must be a valid MongoDB selector.
 func (a *adapter) LoadFilteredPolicy(model model.Model, filter interface{}) error {
 	lines := []CasbinRule{}
-	if filter == nil {
-		a.filtered = false
-		res, err := a.collection.Documents().ReadAll(context.Background(), &lines, cosmos.CrossPartition())
+	querySpec := filter.(cosmos.SqlQuerySpec)
+	a.filtered = true
+	res, err := a.collection.Documents().Query(context.Background(), &querySpec, &lines, cosmos.CrossPartition())
+	if err != nil {
+		return err
+	}
+
+	tokenString := res.Continuation()
+	for tokenString != "" {
+		newLines := []CasbinRule{}
+		res, err := a.collection.Documents().Query(context.Background(), &querySpec, &newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
 		if err != nil {
 			return err
 		}
-		tokenString := res.Continuation()
-		for tokenString != "" {
-			newLines := []CasbinRule{}
-			res, err := a.collection.Documents().ReadAll(context.Background(), &newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
-			if err != nil {
-				return err
-			}
-			tokenString = res.Continuation()
-			lines = append(lines, newLines...)
-		}
-	} else {
-		querySpec := filter.(cosmos.SqlQuerySpec)
-		a.filtered = true
-		res, err := a.collection.Documents().Query(context.Background(), &querySpec, &lines, cosmos.CrossPartition())
-		if err != nil {
-			return err
-		}
-		tokenString := res.Continuation()
-		for tokenString != "" {
-			newLines := []CasbinRule{}
-			res, err := a.collection.Documents().Query(context.Background(), &querySpec, &newLines, cosmos.CrossPartition(), cosmos.Continuation(tokenString))
-			if err != nil {
-				return err
-			}
-			tokenString = res.Continuation()
-			lines = append(lines, newLines...)
-		}
+		tokenString = res.Continuation()
+		lines = append(lines, newLines...)
 	}
 
 	for _, line := range lines {
 		loadPolicyLine(line, model)
 	}
-
 	return nil
-
 }
 
 // IsFiltered returns true if the loaded policy has been filtered.
 func (a *adapter) IsFiltered() bool {
 	return a.filtered
+}
+
+func policyID(ptype string, rule []string) string {
+	data := strings.Join(append([]string{ptype}, rule...), ",")
+	sum := meow.Checksum(0, []byte(data))
+	return fmt.Sprintf("%x", sum)
 }
 
 func savePolicyLine(ptype string, rule []string) CasbinRule {
@@ -244,6 +253,7 @@ func savePolicyLine(ptype string, rule []string) CasbinRule {
 		line.V5 = rule[5]
 	}
 
+	line.ID = policyID(ptype, rule)
 	return line
 }
 
@@ -283,40 +293,19 @@ func (a *adapter) SavePolicy(model model.Model) error {
 
 // AddPolicy adds a policy rule to the storage.
 func (a *adapter) AddPolicy(sec string, ptype string, rule []string) error {
-	line := savePolicyLine(ptype, rule)
-	_, err := a.collection.Documents().Create(context.Background(), &line, cosmos.PartitionKey(line.PType))
+	policy := savePolicyLine(ptype, rule)
+	_, err := a.collection.Documents().Create(context.Background(), &policy, cosmos.PartitionKey(policy.PType))
 	return err
 }
 
 // RemovePolicy removes a policy rule from the storage.
 func (a *adapter) RemovePolicy(sec string, ptype string, rule []string) error {
-	query := "SELECT * FROM root WHERE root.pType = @pType"
-	parameters := []cosmos.QueryParam{{Name: "@pType", Value: ptype}}
-	for i, value := range rule {
-		indexString := strconv.Itoa(i)
-		query += " AND root.v" + indexString + " = @v" + indexString
-		parameters = append(parameters, cosmos.QueryParam{Name: "@v" + indexString, Value: value})
-	}
-
-	querySpec := cosmos.SqlQuerySpec{Parameters: parameters, Query: query}
-	var policies []CasbinRule
-	_, err := a.collection.Documents().Query(context.Background(), &querySpec, &policies, cosmos.PartitionKey(ptype))
-	if err != nil {
-		return err
-	}
-
-	for _, policy := range policies {
-		_, err := a.collection.Document(policy.ID).Delete(context.Background(), cosmos.PartitionKey(policy.PType))
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	policy := savePolicyLine(ptype, rule)
+	_, err := a.collection.Document(policy.ID).Delete(context.Background(), cosmos.PartitionKey(policy.PType))
+	return err
 }
 
 // RemoveFilteredPolicy removes policy rules that match the filter from the storage.
-// @TODO IMPLEMENT
 func (a *adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int, fieldValues ...string) error {
 	selector := make(map[string]interface{})
 
