@@ -33,7 +33,6 @@ func getConnString() string {
 func testGetPolicy(t *testing.T, e *casbin.Enforcer, res [][]string) {
 	t.Helper()
 	myRes := e.GetPolicy()
-	t.Log("Policy: ", myRes)
 
 	if !util.Array2DEquals(res, myRes) {
 		t.Error("Policy: ", myRes, ", supposed to be ", res)
@@ -119,9 +118,8 @@ func TestAdapter(t *testing.T) {
 
 	// Remove the added rule.
 	e.RemovePolicy("alice", "data1", "write")
-	if err := a.RemovePolicy("p", "p", []string{"alice", "data1", "write"}); err != nil {
-		t.Errorf("Expected RemovePolicy() to be successful; got %v", err)
-	}
+	e.LoadPolicy()
+	testGetPolicy(t, e, [][]string{{"alice", "data1", "read"}, {"bob", "data2", "write"}, {"data2_admin", "data2", "read"}, {"data2_admin", "data2", "write"}})
 
 	if err := e.LoadPolicy(); err != nil {
 		t.Errorf("Expected LoadPolicy() to be successful; got %v", err)
@@ -280,10 +278,6 @@ func TestAdapterWithOptions(t *testing.T) {
 
 	// Remove the added rule.
 	e.RemovePolicy("alice", "data1", "write")
-	if err := a.RemovePolicy("p", "p", []string{"alice", "data1", "write"}); err != nil {
-		t.Errorf("Expected RemovePolicy() to be successful; got %v", err)
-	}
-
 	if err := e.LoadPolicy(); err != nil {
 		t.Errorf("Expected LoadPolicy() to be successful; got %v", err)
 	}
