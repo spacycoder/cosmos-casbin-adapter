@@ -377,3 +377,9 @@ func Collection(coll string) Option {
 		a.collectionName = coll
 	}
 }
+
+func CosmosClient(client *cosmos.Client) Option {
+	return func(a *adapter) {
+		a.client = client
+	}
+}
