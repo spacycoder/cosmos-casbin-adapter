@@ -6,5 +6,5 @@ github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/mmcloughlin/meow v0.0.0-20200201185800-3501c7c05d21 h1:2BIiU0QuELctVxpl6FKAsf68ZZvI89I9c8Kt8Guxba8=
 github.com/mmcloughlin/meow v0.0.0-20200201185800-3501c7c05d21/go.mod h1:uxCZJI8Z1PD2WRnSJtVJGHCyxC5qWhz5lOsx3Bx1NXo=
-github.com/spacycoder/cosmosdb-go-sdk v0.1.0 h1:AFWYOcCvCBFe9mO04fE+Yqcq0TCf6Dx6K5G8NBMw4IM=
-github.com/spacycoder/cosmosdb-go-sdk v0.1.0/go.mod h1:eW/wmGR3jL8QMUl6tf51DLeSAy7o15NkZ84GMCcxxvs=
+github.com/spacycoder/cosmosdb-go-sdk v0.1.1 h1:zfHxS58e/DxPss2NJi1rv8uIZXu2B9+RQUQpacBJRIA=
+github.com/spacycoder/cosmosdb-go-sdk v0.1.1/go.mod h1:eW/wmGR3jL8QMUl6tf51DLeSAy7o15NkZ84GMCcxxvs=
