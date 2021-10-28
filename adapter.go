@@ -54,7 +54,7 @@ func NewAdapter(connectionString string, options ...Option) persist.Adapter {
 		option(a)
 	}
 
-	db := client.Database(a.databaseName)
+	db := a.client.Database(a.databaseName)
 	a.createDatabaseIfNotExist(db)
 	a.db = db
 
@@ -375,5 +375,11 @@ func Database(db string) Option {
 func Collection(coll string) Option {
 	return func(a *adapter) {
 		a.collectionName = coll
+	}
+}
+
+func CosmosClient(client *cosmos.Client) Option {
+	return func(a *adapter) {
+		a.client = client
 	}
 }
