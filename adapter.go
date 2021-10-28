@@ -54,7 +54,7 @@ func NewAdapter(connectionString string, options ...Option) persist.Adapter {
 		option(a)
 	}
 
-	db := client.Database(a.databaseName)
+	db := a.client.Database(a.databaseName)
 	a.createDatabaseIfNotExist(db)
 	a.db = db
 
